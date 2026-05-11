@@ -1,0 +1,333 @@
+(function () {
+  'use strict';
+
+  // ── Constants ──────────────────────────────────────────────
+  var STORAGE_KEY = 'calendarEvents';
+  var DAYS_SHORT  = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  var MONTHS      = ['January','February','March','April','May','June',
+                     'July','August','September','October','November','December'];
+  var MAX_PILLS   = 3;
+
+  // ── State ──────────────────────────────────────────────────
+  var today        = new Date();
+  var currentYear  = today.getFullYear();
+  var currentMonth = today.getMonth();
+  var events       = [];
+  var editingId    = null;
+
+  // ── localStorage helpers ───────────────────────────────────
+  function loadEvents() {
+    try {
+      var raw = localStorage.getItem(STORAGE_KEY);
+      var parsed = raw ? JSON.parse(raw) : [];
+      events = Array.isArray(parsed) ? parsed : [];
+    } catch (e) {
+      events = [];
+    }
+  }
+
+  function saveEvents() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(events));
+  }
+
+  // ── Utilities ──────────────────────────────────────────────
+  function generateId() {
+    return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  }
+
+  function toDateStr(year, month, day) {
+    return year + '-' +
+      String(month + 1).padStart(2, '0') + '-' +
+      String(day).padStart(2, '0');
+  }
+
+  function getEventsForDate(dateStr) {
+    return events
+      .filter(function (ev) { return ev.date === dateStr; })
+      .sort(function (a, b) {
+        return (a.startTime || '').localeCompare(b.startTime || '');
+      });
+  }
+
+  // ── Calendar rendering ─────────────────────────────────────
+  function renderCalendar() {
+    document.getElementById('month-title').textContent =
+      MONTHS[currentMonth] + ' ' + currentYear;
+    buildDayCells();
+  }
+
+  function buildDayCells() {
+    var grid = document.getElementById('calendar-grid');
+    grid.innerHTML = '';
+
+    // Weekday header row
+    DAYS_SHORT.forEach(function (day) {
+      var cell = document.createElement('div');
+      cell.className = 'weekday-header';
+      cell.textContent = day;
+      grid.appendChild(cell);
+    });
+
+    var firstDay       = new Date(currentYear, currentMonth, 1).getDay();
+    var daysInMonth    = new Date(currentYear, currentMonth + 1, 0).getDate();
+    var daysInPrevMonth = new Date(currentYear, currentMonth, 0).getDate();
+    var nowDate        = new Date();
+
+    // Leading filler cells (days from previous month)
+    for (var i = 0; i < firstDay; i++) {
+      grid.appendChild(makeFillerCell(daysInPrevMonth - firstDay + 1 + i));
+    }
+
+    // Current month day cells
+    for (var d = 1; d <= daysInMonth; d++) {
+      var dateStr = toDateStr(currentYear, currentMonth, d);
+      var isToday = (d === nowDate.getDate() &&
+                     currentMonth === nowDate.getMonth() &&
+                     currentYear  === nowDate.getFullYear());
+      grid.appendChild(makeDayCell(d, dateStr, isToday));
+    }
+
+    // Trailing filler cells
+    var totalCells = firstDay + daysInMonth;
+    var remainder  = totalCells % 7;
+    var trailing   = remainder === 0 ? 0 : 7 - remainder;
+    for (var j = 1; j <= trailing; j++) {
+      grid.appendChild(makeFillerCell(j));
+    }
+  }
+
+  function makeFillerCell(dayNum) {
+    var cell = document.createElement('div');
+    cell.className = 'day-cell day-cell--filler';
+    var num = document.createElement('div');
+    num.className = 'day-number';
+    num.textContent = dayNum;
+    cell.appendChild(num);
+    return cell;
+  }
+
+  function makeDayCell(dayNum, dateStr, isToday) {
+    var cell = document.createElement('div');
+    cell.className = 'day-cell' + (isToday ? ' day-cell--today' : '');
+    cell.dataset.date = dateStr;
+
+    var num = document.createElement('div');
+    num.className = 'day-number';
+    num.textContent = dayNum;
+    cell.appendChild(num);
+
+    var dayEvents = getEventsForDate(dateStr);
+    var visible   = dayEvents.slice(0, MAX_PILLS);
+    var overflow  = dayEvents.length - visible.length;
+
+    visible.forEach(function (ev) {
+      var pill = document.createElement('button');
+      pill.type = 'button';
+      pill.className = 'event-pill';
+      pill.textContent = (ev.startTime ? ev.startTime + ' ' : '') + ev.title;
+      pill.dataset.eventId = ev.id;
+      pill.addEventListener('click', function (e) {
+        e.stopPropagation();
+        openModal(dateStr, ev.id);
+      });
+      cell.appendChild(pill);
+
+      // Dot for mobile (CSS hides pills on small screens)
+      var dot = document.createElement('span');
+      dot.className = 'event-dot';
+      dot.setAttribute('aria-hidden', 'true');
+      cell.appendChild(dot);
+    });
+
+    if (overflow > 0) {
+      var more = document.createElement('div');
+      more.className = 'event-overflow';
+      more.textContent = '+' + overflow + ' more';
+      cell.appendChild(more);
+    }
+
+    cell.addEventListener('click', function () {
+      openModal(dateStr, null);
+    });
+
+    return cell;
+  }
+
+  // ── Modal ──────────────────────────────────────────────────
+  function openModal(date, eventId) {
+    editingId = eventId || null;
+    clearErrors();
+
+    var modal     = document.getElementById('event-modal');
+    var title     = document.getElementById('modal-title');
+    var btnDelete = document.getElementById('btn-delete-event');
+
+    if (editingId) {
+      var ev = events.find(function (e) { return e.id === editingId; });
+      if (!ev) { closeModal(); return; }
+      title.textContent = 'Edit Event';
+      document.getElementById('input-title').value = ev.title;
+      document.getElementById('input-date').value  = ev.date;
+      document.getElementById('input-start').value = ev.startTime || '';
+      document.getElementById('input-end').value   = ev.endTime   || '';
+      document.getElementById('input-notes').value = ev.notes     || '';
+      btnDelete.hidden = false;
+    } else {
+      title.textContent = 'Add Event';
+      document.getElementById('event-form').reset();
+      document.getElementById('input-date').value = date || '';
+      btnDelete.hidden = true;
+    }
+
+    modal.setAttribute('aria-hidden', 'false');
+    document.getElementById('input-title').focus();
+  }
+
+  function closeModal() {
+    document.getElementById('event-modal').setAttribute('aria-hidden', 'true');
+    document.getElementById('event-form').reset();
+    clearErrors();
+    editingId = null;
+  }
+
+  function clearErrors() {
+    document.getElementById('err-title').textContent = '';
+    document.getElementById('err-date').textContent  = '';
+    document.getElementById('err-time').textContent  = '';
+  }
+
+  // ── Validation ─────────────────────────────────────────────
+  function validateForm(data) {
+    var errors = {};
+    if (!data.title)  errors.title = 'Title is required.';
+    if (!data.date)   errors.date  = 'Date is required.';
+    if (data.startTime && data.endTime && data.endTime <= data.startTime) {
+      errors.time = 'End time must be after start time.';
+    }
+    return errors;
+  }
+
+  // ── Event CRUD ─────────────────────────────────────────────
+  function addEvent(data) {
+    events.push({
+      id:        generateId(),
+      title:     data.title,
+      date:      data.date,
+      startTime: data.startTime,
+      endTime:   data.endTime,
+      notes:     data.notes,
+      createdAt: new Date().toISOString()
+    });
+    saveEvents();
+  }
+
+  function updateEvent(id, data) {
+    var idx = events.findIndex(function (ev) { return ev.id === id; });
+    if (idx === -1) return;
+    events[idx] = Object.assign({}, events[idx], {
+      title:     data.title,
+      date:      data.date,
+      startTime: data.startTime,
+      endTime:   data.endTime,
+      notes:     data.notes,
+      updatedAt: new Date().toISOString()
+    });
+    saveEvents();
+  }
+
+  function deleteEvent(id) {
+    events = events.filter(function (ev) { return ev.id !== id; });
+    saveEvents();
+  }
+
+  // ── Form submit ────────────────────────────────────────────
+  function handleSubmit(e) {
+    e.preventDefault();
+    clearErrors();
+
+    var data = {
+      title:     document.getElementById('input-title').value.trim(),
+      date:      document.getElementById('input-date').value,
+      startTime: document.getElementById('input-start').value,
+      endTime:   document.getElementById('input-end').value,
+      notes:     document.getElementById('input-notes').value.trim()
+    };
+
+    var errors = validateForm(data);
+    if (errors.title) document.getElementById('err-title').textContent = errors.title;
+    if (errors.date)  document.getElementById('err-date').textContent  = errors.date;
+    if (errors.time)  document.getElementById('err-time').textContent  = errors.time;
+    if (Object.keys(errors).length > 0) return;
+
+    if (editingId) {
+      updateEvent(editingId, data);
+    } else {
+      addEvent(data);
+    }
+
+    closeModal();
+    renderCalendar();
+  }
+
+  // ── Navigation ─────────────────────────────────────────────
+  function goToPrevMonth() {
+    if (currentMonth === 0) { currentMonth = 11; currentYear--; }
+    else { currentMonth--; }
+    renderCalendar();
+  }
+
+  function goToNextMonth() {
+    if (currentMonth === 11) { currentMonth = 0; currentYear++; }
+    else { currentMonth++; }
+    renderCalendar();
+  }
+
+  function goToToday() {
+    var now      = new Date();
+    currentYear  = now.getFullYear();
+    currentMonth = now.getMonth();
+    renderCalendar();
+  }
+
+  // ── Init ───────────────────────────────────────────────────
+  function init() {
+    loadEvents();
+
+    document.getElementById('btn-prev').addEventListener('click', goToPrevMonth);
+    document.getElementById('btn-next').addEventListener('click', goToNextMonth);
+    document.getElementById('btn-today').addEventListener('click', goToToday);
+
+    document.getElementById('btn-add-event').addEventListener('click', function () {
+      var now = new Date();
+      var date = (currentYear === now.getFullYear() && currentMonth === now.getMonth())
+        ? toDateStr(now.getFullYear(), now.getMonth(), now.getDate())
+        : toDateStr(currentYear, currentMonth, 1);
+      openModal(date, null);
+    });
+
+    document.getElementById('btn-modal-close').addEventListener('click', closeModal);
+    document.getElementById('btn-cancel').addEventListener('click', closeModal);
+
+    document.getElementById('event-modal').addEventListener('click', function (e) {
+      if (e.target === e.currentTarget) closeModal();
+    });
+
+    document.getElementById('event-form').addEventListener('submit', handleSubmit);
+
+    document.getElementById('btn-delete-event').addEventListener('click', function () {
+      if (editingId && confirm('Delete this event? This cannot be undone.')) {
+        deleteEvent(editingId);
+        closeModal();
+        renderCalendar();
+      }
+    });
+
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') closeModal();
+    });
+
+    renderCalendar();
+  }
+
+  document.addEventListener('DOMContentLoaded', init);
+})();
