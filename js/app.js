@@ -2,11 +2,26 @@
   'use strict';
 
   // ── Constants ──────────────────────────────────────────────
-  var STORAGE_KEY = 'calendarEvents';
-  var DAYS_SHORT  = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-  var MONTHS      = ['January','February','March','April','May','June',
-                     'July','August','September','October','November','December'];
-  var MAX_PILLS   = 3;
+  var STORAGE_KEY   = 'calendarEvents';
+  var DAYS_SHORT    = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  var MONTHS        = ['January','February','March','April','May','June',
+                       'July','August','September','October','November','December'];
+  var MAX_PILLS     = 3;
+  var DEFAULT_COLOR = '#1a73e8';
+
+  var EVENT_COLORS = [
+    { color: '#1a73e8', name: 'Blueberry' },
+    { color: '#d50000', name: 'Tomato' },
+    { color: '#e67c73', name: 'Flamingo' },
+    { color: '#f4511e', name: 'Tangerine' },
+    { color: '#f6bf26', name: 'Banana' },
+    { color: '#33b679', name: 'Sage' },
+    { color: '#0b8043', name: 'Basil' },
+    { color: '#039be5', name: 'Peacock' },
+    { color: '#3f51b5', name: 'Lavender' },
+    { color: '#7986cb', name: 'Grape' },
+    { color: '#8e24aa', name: 'Graphite' }
+  ];
 
   // ── State ──────────────────────────────────────────────────
   var today        = new Date();
@@ -15,7 +30,7 @@
   var events       = [];
   var editingId    = null;
 
-  // ── localStorage helpers ───────────────────────────────────
+  // ── localStorage ───────────────────────────────────────────
   function loadEvents() {
     try {
       var raw = localStorage.getItem(STORAGE_KEY);
@@ -49,6 +64,12 @@
       });
   }
 
+  // ── Logo day number ────────────────────────────────────────
+  function updateLogoDayNum() {
+    var el = document.getElementById('logo-day-num');
+    if (el) el.textContent = today.getDate();
+  }
+
   // ── Calendar rendering ─────────────────────────────────────
   function renderCalendar() {
     document.getElementById('month-title').textContent =
@@ -60,7 +81,6 @@
     var grid = document.getElementById('calendar-grid');
     grid.innerHTML = '';
 
-    // Weekday header row
     DAYS_SHORT.forEach(function (day) {
       var cell = document.createElement('div');
       cell.className = 'weekday-header';
@@ -68,17 +88,15 @@
       grid.appendChild(cell);
     });
 
-    var firstDay       = new Date(currentYear, currentMonth, 1).getDay();
-    var daysInMonth    = new Date(currentYear, currentMonth + 1, 0).getDate();
+    var firstDay        = new Date(currentYear, currentMonth, 1).getDay();
+    var daysInMonth     = new Date(currentYear, currentMonth + 1, 0).getDate();
     var daysInPrevMonth = new Date(currentYear, currentMonth, 0).getDate();
-    var nowDate        = new Date();
+    var nowDate         = new Date();
 
-    // Leading filler cells (days from previous month)
     for (var i = 0; i < firstDay; i++) {
       grid.appendChild(makeFillerCell(daysInPrevMonth - firstDay + 1 + i));
     }
 
-    // Current month day cells
     for (var d = 1; d <= daysInMonth; d++) {
       var dateStr = toDateStr(currentYear, currentMonth, d);
       var isToday = (d === nowDate.getDate() &&
@@ -87,7 +105,6 @@
       grid.appendChild(makeDayCell(d, dateStr, isToday));
     }
 
-    // Trailing filler cells
     var totalCells = firstDay + daysInMonth;
     var remainder  = totalCells % 7;
     var trailing   = remainder === 0 ? 0 : 7 - remainder;
@@ -120,10 +137,12 @@
     var visible   = dayEvents.slice(0, MAX_PILLS);
     var overflow  = dayEvents.length - visible.length;
 
+    // Desktop: event pills
     visible.forEach(function (ev) {
       var pill = document.createElement('button');
       pill.type = 'button';
       pill.className = 'event-pill';
+      pill.style.background = ev.color || DEFAULT_COLOR;
       pill.textContent = (ev.startTime ? ev.startTime + ' ' : '') + ev.title;
       pill.dataset.eventId = ev.id;
       pill.addEventListener('click', function (e) {
@@ -131,19 +150,31 @@
         openModal(dateStr, ev.id);
       });
       cell.appendChild(pill);
-
-      // Dot for mobile (CSS hides pills on small screens)
-      var dot = document.createElement('span');
-      dot.className = 'event-dot';
-      dot.setAttribute('aria-hidden', 'true');
-      cell.appendChild(dot);
     });
 
     if (overflow > 0) {
       var more = document.createElement('div');
       more.className = 'event-overflow';
       more.textContent = '+' + overflow + ' more';
+      more.addEventListener('click', function (e) {
+        e.stopPropagation();
+        openModal(dateStr, null);
+      });
       cell.appendChild(more);
+    }
+
+    // Mobile: dots row
+    if (dayEvents.length > 0) {
+      var dotsRow = document.createElement('div');
+      dotsRow.className = 'dots-row';
+      var dotCount = Math.min(dayEvents.length, 3);
+      for (var k = 0; k < dotCount; k++) {
+        var dot = document.createElement('span');
+        dot.className = 'event-dot';
+        dot.style.background = dayEvents[k].color || DEFAULT_COLOR;
+        dotsRow.appendChild(dot);
+      }
+      cell.appendChild(dotsRow);
     }
 
     cell.addEventListener('click', function () {
@@ -153,29 +184,56 @@
     return cell;
   }
 
+  // ── Color swatches ─────────────────────────────────────────
+  function buildColorSwatches() {
+    var container = document.getElementById('color-swatches');
+    EVENT_COLORS.forEach(function (item) {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'color-swatch';
+      btn.style.setProperty('--swatch-color', item.color);
+      btn.style.background = item.color;
+      btn.dataset.color = item.color;
+      btn.setAttribute('aria-label', item.name);
+      btn.addEventListener('click', function () {
+        selectColor(item.color);
+      });
+      container.appendChild(btn);
+    });
+  }
+
+  function selectColor(color) {
+    document.getElementById('input-color').value = color;
+    document.querySelectorAll('.color-swatch').forEach(function (sw) {
+      sw.classList.toggle('selected', sw.dataset.color === color);
+    });
+    // Update the circle icon in the form row to reflect selection
+    var icon = document.querySelector('.form-row .form-icon[style]');
+    if (icon) icon.style.color = color;
+  }
+
   // ── Modal ──────────────────────────────────────────────────
   function openModal(date, eventId) {
     editingId = eventId || null;
     clearErrors();
 
     var modal     = document.getElementById('event-modal');
-    var title     = document.getElementById('modal-title');
     var btnDelete = document.getElementById('btn-delete-event');
 
     if (editingId) {
       var ev = events.find(function (e) { return e.id === editingId; });
       if (!ev) { closeModal(); return; }
-      title.textContent = 'Edit Event';
       document.getElementById('input-title').value = ev.title;
       document.getElementById('input-date').value  = ev.date;
       document.getElementById('input-start').value = ev.startTime || '';
       document.getElementById('input-end').value   = ev.endTime   || '';
       document.getElementById('input-notes').value = ev.notes     || '';
+      selectColor(ev.color || DEFAULT_COLOR);
       btnDelete.hidden = false;
     } else {
-      title.textContent = 'Add Event';
       document.getElementById('event-form').reset();
       document.getElementById('input-date').value = date || '';
+      selectColor(DEFAULT_COLOR);
       btnDelete.hidden = true;
     }
 
@@ -216,6 +274,7 @@
       startTime: data.startTime,
       endTime:   data.endTime,
       notes:     data.notes,
+      color:     data.color,
       createdAt: new Date().toISOString()
     });
     saveEvents();
@@ -230,6 +289,7 @@
       startTime: data.startTime,
       endTime:   data.endTime,
       notes:     data.notes,
+      color:     data.color,
       updatedAt: new Date().toISOString()
     });
     saveEvents();
@@ -250,7 +310,8 @@
       date:      document.getElementById('input-date').value,
       startTime: document.getElementById('input-start').value,
       endTime:   document.getElementById('input-end').value,
-      notes:     document.getElementById('input-notes').value.trim()
+      notes:     document.getElementById('input-notes').value.trim(),
+      color:     document.getElementById('input-color').value || DEFAULT_COLOR
     };
 
     var errors = validateForm(data);
@@ -292,10 +353,13 @@
   // ── Init ───────────────────────────────────────────────────
   function init() {
     loadEvents();
+    updateLogoDayNum();
+    buildColorSwatches();
 
     document.getElementById('btn-prev').addEventListener('click', goToPrevMonth);
     document.getElementById('btn-next').addEventListener('click', goToNextMonth);
     document.getElementById('btn-today').addEventListener('click', goToToday);
+    document.getElementById('btn-menu').addEventListener('click', function () {/* sidebar future use */});
 
     document.getElementById('btn-add-event').addEventListener('click', function () {
       var now = new Date();
@@ -315,7 +379,7 @@
     document.getElementById('event-form').addEventListener('submit', handleSubmit);
 
     document.getElementById('btn-delete-event').addEventListener('click', function () {
-      if (editingId && confirm('Delete this event? This cannot be undone.')) {
+      if (editingId && confirm('Delete this event?')) {
         deleteEvent(editingId);
         closeModal();
         renderCalendar();
