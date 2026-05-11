@@ -7,10 +7,11 @@
   var MONTHS        = ['January','February','March','April','May','June',
                        'July','August','September','October','November','December'];
   var MAX_PILLS     = 3;
-  var DEFAULT_COLOR = '#1a73e8';
+  var DEFAULT_COLOR = '#5c6bc0';
 
   var EVENT_COLORS = [
-    { color: '#1a73e8', name: 'Blueberry' },
+    { color: '#5c6bc0', name: 'Indigo' },
+    { color: '#1a73e8', name: 'Blue' },
     { color: '#d50000', name: 'Tomato' },
     { color: '#e67c73', name: 'Flamingo' },
     { color: '#f4511e', name: 'Tangerine' },
@@ -81,12 +82,6 @@
     }
   }
 
-  // ── Logo day number ────────────────────────────────────────
-  function updateLogoDayNum() {
-    var el = document.getElementById('logo-day-num');
-    if (el) el.textContent = today.getDate();
-  }
-
   // ── Calendar rendering ─────────────────────────────────────
   function renderCalendar() {
     var label = MONTHS[currentMonth] + ' ' + currentYear;
@@ -155,19 +150,29 @@
     var visible   = dayEvents.slice(0, MAX_PILLS);
     var overflow  = dayEvents.length - visible.length;
 
-    // Desktop: event pills
+    // Desktop: dot + text event items
     visible.forEach(function (ev) {
-      var pill = document.createElement('button');
-      pill.type = 'button';
-      pill.className = 'event-pill';
-      pill.style.background = ev.color || DEFAULT_COLOR;
-      pill.textContent = (ev.startTime ? ev.startTime + ' ' : '') + ev.title;
-      pill.dataset.eventId = ev.id;
-      pill.addEventListener('click', function (e) {
+      var item = document.createElement('button');
+      item.type = 'button';
+      item.className = 'event-item';
+      item.dataset.eventId = ev.id;
+
+      var dot = document.createElement('span');
+      dot.className = 'event-dot-inline';
+      dot.setAttribute('aria-hidden', 'true');
+      dot.style.background = ev.color || DEFAULT_COLOR;
+
+      var label = document.createElement('span');
+      label.className = 'event-label';
+      label.textContent = (ev.startTime ? ev.startTime + ' ' : '') + ev.title;
+
+      item.appendChild(dot);
+      item.appendChild(label);
+      item.addEventListener('click', function (e) {
         e.stopPropagation();
         openModal(dateStr, ev.id);
       });
-      cell.appendChild(pill);
+      cell.appendChild(item);
     });
 
     if (overflow > 0) {
@@ -181,16 +186,16 @@
       cell.appendChild(more);
     }
 
-    // Mobile: dots row
+    // Mobile: dots row (shown via CSS at ≤640px)
     if (dayEvents.length > 0) {
       var dotsRow = document.createElement('div');
       dotsRow.className = 'dots-row';
       var dotCount = Math.min(dayEvents.length, 3);
       for (var k = 0; k < dotCount; k++) {
-        var dot = document.createElement('span');
-        dot.className = 'event-dot';
-        dot.style.background = dayEvents[k].color || DEFAULT_COLOR;
-        dotsRow.appendChild(dot);
+        var mobileDot = document.createElement('span');
+        mobileDot.className = 'event-dot';
+        mobileDot.style.background = dayEvents[k].color || DEFAULT_COLOR;
+        dotsRow.appendChild(mobileDot);
       }
       cell.appendChild(dotsRow);
     }
@@ -225,9 +230,6 @@
     document.querySelectorAll('.color-swatch').forEach(function (sw) {
       sw.classList.toggle('selected', sw.dataset.color === color);
     });
-    // Update the circle icon in the form row to reflect selection
-    var icon = document.querySelector('.form-row .form-icon[style]');
-    if (icon) icon.style.color = color;
   }
 
   // ── Modal ──────────────────────────────────────────────────
@@ -379,13 +381,11 @@
   // ── Init ───────────────────────────────────────────────────
   function init() {
     loadEvents();
-    updateLogoDayNum();
     buildColorSwatches();
 
     document.getElementById('btn-prev').addEventListener('click', goToPrevMonth);
     document.getElementById('btn-next').addEventListener('click', goToNextMonth);
     document.getElementById('btn-today').addEventListener('click', goToToday);
-    document.getElementById('btn-menu').addEventListener('click', function () {/* sidebar future use */});
 
     document.getElementById('btn-add-event').addEventListener('click', function () {
       var now = new Date();

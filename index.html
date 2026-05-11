@@ -3,120 +3,83 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Calendar</title>
+  <title>My Calendar</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Roboto:wght@400;500&display=swap" />
-  <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" />
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
   <a href="#calendar-main" class="skip-link">Skip to calendar</a>
-
-  <header id="app-header">
-    <div class="header-left">
-      <button class="btn-icon" id="btn-menu" aria-label="Menu">
-        <span class="material-icons">menu</span>
-      </button>
-      <div class="app-logo">
-        <svg class="logo-svg" width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
-          <rect x="3" y="9" width="34" height="28" rx="2" fill="#fff" stroke="#dadce0" stroke-width="1.5"/>
-          <rect x="3" y="9" width="34" height="11" rx="2" fill="#1a73e8"/>
-          <rect x="3" y="17" width="34" height="3" fill="#1a73e8"/>
-          <rect x="12" y="5" width="3" height="8" rx="1.5" fill="#1a73e8"/>
-          <rect x="25" y="5" width="3" height="8" rx="1.5" fill="#1a73e8"/>
-          <text x="20" y="32" text-anchor="middle" font-family="Roboto,sans-serif" font-size="11" font-weight="700" fill="#1a73e8" id="logo-day-num"></text>
-        </svg>
-        <span class="logo-text">Calendar</span>
-      </div>
-    </div>
-
-    <div class="header-center">
-      <button id="btn-today">Today</button>
-      <div class="header-nav">
-        <button id="btn-prev" class="btn-icon" aria-label="Previous month">
-          <span class="material-icons">chevron_left</span>
-        </button>
-        <button id="btn-next" class="btn-icon" aria-label="Next month">
-          <span class="material-icons">chevron_right</span>
-        </button>
-      </div>
-      <h1 id="month-title"></h1>
-    </div>
-
-    <div class="header-right">
-      <button id="btn-add-event">
-        <span class="material-icons">add</span>
-        Create
-      </button>
-    </div>
-  </header>
-
   <div id="live-region" aria-live="polite" aria-atomic="true" class="sr-only"></div>
 
-  <main id="calendar-main">
-    <div id="calendar-grid"></div>
-  </main>
+  <div class="page-wrapper">
+    <h1 class="page-title">My Calendar</h1>
+
+    <div class="cal-container">
+      <div class="cal-nav">
+        <button id="btn-prev" class="nav-btn" aria-label="Previous month">&#8249;</button>
+        <h2 id="month-title"></h2>
+        <button id="btn-next" class="nav-btn" aria-label="Next month">&#8250;</button>
+      </div>
+
+      <div class="cal-actions">
+        <button id="btn-today">Today</button>
+        <button id="btn-add-event">Add Event</button>
+      </div>
+
+      <main id="calendar-main">
+        <div id="calendar-grid"></div>
+      </main>
+    </div>
+  </div>
 
   <div id="event-modal" class="modal-overlay" aria-hidden="true">
     <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modal-title">
       <div class="modal-header">
-        <h2 id="modal-title">New event</h2>
-        <button id="btn-modal-close" class="btn-icon" aria-label="Close">
-          <span class="material-icons">close</span>
-        </button>
+        <h2 id="modal-title">Add Event</h2>
+        <button id="btn-modal-close" class="btn-close" aria-label="Close">&times;</button>
       </div>
 
       <form id="event-form" novalidate>
         <div class="form-group">
           <label for="input-title" class="sr-only">Event title (required)</label>
-          <input id="input-title" type="text" placeholder="Add title" autocomplete="off" class="input-title-large" aria-required="true" aria-describedby="err-title" />
+          <input id="input-title" type="text" placeholder="Add title" autocomplete="off"
+                 class="input-title-large" aria-required="true" aria-describedby="err-title" />
           <span class="field-error" id="err-title" role="alert"></span>
         </div>
 
-        <div class="form-row">
-          <span class="material-icons form-icon">schedule</span>
-          <div class="form-row-fields">
-            <div class="form-group form-group--inline">
-              <div>
-                <label for="input-date" class="sr-only">Date (required)</label>
-                <input id="input-date" type="date" aria-required="true" aria-describedby="err-date" />
-                <span class="field-error" id="err-date" role="alert"></span>
-              </div>
-              <div>
-                <label for="input-start" class="sr-only">Start time</label>
-                <input id="input-start" type="time" placeholder="Start time" />
-              </div>
-              <div>
-                <label for="input-end" class="sr-only">End time</label>
-                <input id="input-end" type="time" placeholder="End time" />
-              </div>
-            </div>
-            <span class="field-error" id="err-time" role="alert"></span>
-          </div>
+        <div class="form-group">
+          <label for="input-date">Date <span class="required" aria-hidden="true">*</span></label>
+          <input id="input-date" type="date" aria-required="true" aria-describedby="err-date" />
+          <span class="field-error" id="err-date" role="alert"></span>
         </div>
 
-        <div class="form-row">
-          <span class="material-icons form-icon">notes</span>
-          <div class="form-group" style="flex:1">
-            <label for="input-notes" class="sr-only">Notes</label>
-            <textarea id="input-notes" rows="2" placeholder="Add description"></textarea>
+        <div class="form-group form-group--inline">
+          <div>
+            <label for="input-start">Start time</label>
+            <input id="input-start" type="time" />
+          </div>
+          <div>
+            <label for="input-end">End time</label>
+            <input id="input-end" type="time" />
           </div>
         </div>
+        <span class="field-error" id="err-time" role="alert"></span>
 
-        <div class="form-row">
-          <span class="material-icons form-icon" style="color:var(--gcal-blue)">circle</span>
-          <div class="form-group" style="flex:1">
-            <div class="color-swatches" id="color-swatches"></div>
-            <input type="hidden" id="input-color" value="#1a73e8" />
-          </div>
+        <div class="form-group">
+          <label for="input-notes">Notes</label>
+          <textarea id="input-notes" rows="2" placeholder="Add description"></textarea>
+        </div>
+
+        <div class="form-group">
+          <label>Color</label>
+          <div class="color-swatches" id="color-swatches"></div>
+          <input type="hidden" id="input-color" value="#5c6bc0" />
         </div>
 
         <div class="modal-actions">
-          <button type="button" id="btn-delete-event" class="btn-text-danger" hidden>
-            <span class="material-icons">delete_outline</span>
-            Delete
-          </button>
+          <button type="button" id="btn-delete-event" class="btn-text-danger" hidden>Delete</button>
           <div class="modal-actions-right">
             <button type="button" id="btn-cancel" class="btn-text">Cancel</button>
             <button type="submit" id="btn-save" class="btn-contained">Save</button>
