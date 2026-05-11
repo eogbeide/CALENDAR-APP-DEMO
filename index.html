@@ -11,6 +11,7 @@
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
+  <a href="#calendar-main" class="skip-link">Skip to calendar</a>
 
   <header id="app-header">
     <div class="header-left">
@@ -18,7 +19,7 @@
         <span class="material-icons">menu</span>
       </button>
       <div class="app-logo">
-        <svg class="logo-svg" width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+        <svg class="logo-svg" width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
           <rect x="3" y="9" width="34" height="28" rx="2" fill="#fff" stroke="#dadce0" stroke-width="1.5"/>
           <rect x="3" y="9" width="34" height="11" rx="2" fill="#1a73e8"/>
           <rect x="3" y="17" width="34" height="3" fill="#1a73e8"/>
@@ -51,6 +52,8 @@
     </div>
   </header>
 
+  <div id="live-region" aria-live="polite" aria-atomic="true" class="sr-only"></div>
+
   <main id="calendar-main">
     <div id="calendar-grid"></div>
   </main>
@@ -66,8 +69,9 @@
 
       <form id="event-form" novalidate>
         <div class="form-group">
-          <input id="input-title" type="text" placeholder="Add title" autocomplete="off" class="input-title-large" />
-          <span class="field-error" id="err-title"></span>
+          <label for="input-title" class="sr-only">Event title (required)</label>
+          <input id="input-title" type="text" placeholder="Add title" autocomplete="off" class="input-title-large" aria-required="true" aria-describedby="err-title" />
+          <span class="field-error" id="err-title" role="alert"></span>
         </div>
 
         <div class="form-row">
@@ -75,9 +79,9 @@
           <div class="form-row-fields">
             <div class="form-group form-group--inline">
               <div>
-                <label for="input-date" class="sr-only">Date</label>
-                <input id="input-date" type="date" />
-                <span class="field-error" id="err-date"></span>
+                <label for="input-date" class="sr-only">Date (required)</label>
+                <input id="input-date" type="date" aria-required="true" aria-describedby="err-date" />
+                <span class="field-error" id="err-date" role="alert"></span>
               </div>
               <div>
                 <label for="input-start" class="sr-only">Start time</label>
@@ -88,7 +92,7 @@
                 <input id="input-end" type="time" placeholder="End time" />
               </div>
             </div>
-            <span class="field-error" id="err-time"></span>
+            <span class="field-error" id="err-time" role="alert"></span>
           </div>
         </div>
 

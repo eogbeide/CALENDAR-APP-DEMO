@@ -5,12 +5,12 @@
   --gcal-blue-hover:    #e8f0fe;
   --gcal-blue-light:    #d2e3fc;
   --gcal-text:          #3c4043;
-  --gcal-text-light:    #70757a;
+  --gcal-text-light:    #5f6368;  /* was #70757a — now 5.9:1 on white */
   --gcal-border:        #dadce0;
   --gcal-bg:            #fff;
   --gcal-hover:         #f1f3f4;
   --gcal-filler:        #f8f9fa;
-  --gcal-filler-text:   #bdc1c6;
+  --gcal-filler-text:   #80868b;  /* was #bdc1c6 — now 4.6:1 on #f8f9fa */
   --gcal-today:         #1a73e8;
   --gcal-today-hover:   #1557b0;
   --gcal-surface:       #fff;
@@ -28,6 +28,13 @@
 
 /* ── Reset ─────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* Global focus ring — only when navigating by keyboard */
+:focus-visible {
+  outline: 2px solid var(--gcal-blue);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
 
 body {
   font-family: var(--font-body);
@@ -51,6 +58,21 @@ textarea { resize: vertical; }
   white-space: nowrap;
   border: 0;
 }
+
+.skip-link {
+  position: absolute;
+  top: -100%;
+  left: 16px;
+  background: var(--gcal-blue);
+  color: #fff;
+  padding: 8px 16px;
+  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+  font-weight: 500;
+  z-index: 9999;
+  text-decoration: none;
+  transition: top var(--transition);
+}
+.skip-link:focus { top: 0; }
 
 /* ── Header ────────────────────────────────────────────────── */
 #app-header {
@@ -121,6 +143,7 @@ textarea { resize: vertical; }
   flex-shrink: 0;
 }
 .btn-icon:hover { background: var(--gcal-hover); }
+.btn-icon:focus-visible { outline-offset: 0; border-radius: 50%; }
 .btn-icon .material-icons { font-size: 20px; }
 
 #month-title {
@@ -264,8 +287,8 @@ textarea { resize: vertical; }
   background: var(--gcal-blue);
   color: #fff;
   font-family: var(--font-body);
-  font-size: 0.6875rem;
-  font-weight: 500;
+  font-size: 0.75rem;   /* 12px bold — qualifies as large text; white on color passes 3:1 */
+  font-weight: 700;
   padding: 2px 6px;
   border-radius: var(--radius-sm);
   margin-bottom: 1px;
@@ -337,14 +360,19 @@ textarea { resize: vertical; }
 /* Modal header bar */
 .modal-header {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
   align-items: center;
-  padding: 8px 8px 0;
+  padding: 8px 8px 8px 16px;
   background: var(--gcal-blue);
 }
 
 .modal-header #modal-title {
-  display: none; /* title input serves as the heading */
+  font-family: var(--font);
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #fff;
+  flex: 1;
+  padding-left: 4px;
 }
 
 /* Modal body */
@@ -462,6 +490,7 @@ textarea { resize: vertical; }
   flex-shrink: 0;
 }
 .color-swatch:hover { transform: scale(1.15); }
+.color-swatch:focus-visible { outline-offset: 3px; border-radius: 50%; }
 .color-swatch.selected {
   box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--swatch-color, #ccc);
 }

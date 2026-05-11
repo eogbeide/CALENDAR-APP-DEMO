@@ -29,6 +29,7 @@
   var currentMonth = today.getMonth();
   var events       = [];
   var editingId    = null;
+  var modalOpener  = null;  // element that opened the modal; focus returns here on close
 
   // ── localStorage ───────────────────────────────────────────
   function loadEvents() {
@@ -64,6 +65,22 @@
       });
   }
 
+  // ── Focus trap ─────────────────────────────────────────────
+  var FOCUSABLE = 'a[href],button:not([disabled]),input:not([disabled]),textarea:not([disabled]),select:not([disabled]),[tabindex]:not([tabindex="-1"])';
+
+  function trapFocus(e) {
+    var modal      = document.getElementById('event-modal');
+    var focusable  = Array.from(modal.querySelectorAll(FOCUSABLE));
+    var first      = focusable[0];
+    var last       = focusable[focusable.length - 1];
+    if (e.key !== 'Tab') return;
+    if (e.shiftKey) {
+      if (document.activeElement === first) { e.preventDefault(); last.focus(); }
+    } else {
+      if (document.activeElement === last)  { e.preventDefault(); first.focus(); }
+    }
+  }
+
   // ── Logo day number ────────────────────────────────────────
   function updateLogoDayNum() {
     var el = document.getElementById('logo-day-num');
@@ -72,8 +89,9 @@
 
   // ── Calendar rendering ─────────────────────────────────────
   function renderCalendar() {
-    document.getElementById('month-title').textContent =
-      MONTHS[currentMonth] + ' ' + currentYear;
+    var label = MONTHS[currentMonth] + ' ' + currentYear;
+    document.getElementById('month-title').textContent = label;
+    document.getElementById('live-region').textContent = label;
     buildDayCells();
   }
 
@@ -238,14 +256,22 @@
     }
 
     modal.setAttribute('aria-hidden', 'false');
+    modalOpener = document.activeElement;
     document.getElementById('input-title').focus();
+    modal.addEventListener('keydown', trapFocus);
   }
 
   function closeModal() {
-    document.getElementById('event-modal').setAttribute('aria-hidden', 'true');
+    var modal = document.getElementById('event-modal');
+    modal.setAttribute('aria-hidden', 'true');
+    modal.removeEventListener('keydown', trapFocus);
     document.getElementById('event-form').reset();
     clearErrors();
     editingId = null;
+    if (modalOpener && typeof modalOpener.focus === 'function') {
+      modalOpener.focus();
+      modalOpener = null;
+    }
   }
 
   function clearErrors() {
